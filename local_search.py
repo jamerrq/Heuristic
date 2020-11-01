@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import random as rd
 import multiprocessing as mp
+import os
 
 
 def get_data(i):
@@ -193,15 +194,19 @@ def neighbor_value(neighbor, left, right, fobs):
     return noFill, -sumFob
 
 
-def vnd(i, alpha=0.5):
+def vnd(i, alpha=0.5, file=None):
     #
     s, l, r, fobs = greedyRan(i, alpha)
+    s_value = neighbor_value(s, l, r, fobs)
     #
-    print('First', neighbor_value(s, l, r, fobs))
+    if file:
+        file.write('First: ' + str(s_value) + '\n')
+    else:
+        print('First:', neighbor_value(s, l, r, fobs))
     #
     j = 0
     #
-    neighborhoods = [neighbors3, neighbors1, neighbors2]
+    neighborhoods = [neighbors3, neighbors2, neighbors1]
     nn = len(neighborhoods)
     #
     best_neig = s
@@ -209,15 +214,23 @@ def vnd(i, alpha=0.5):
         neighbors = neighborhoods[j](s)
         neighbors.sort(key=lambda x:neighbor_value(x, l, r, fobs))
         best_neig = neighbors[0]
-        if neighbor_value(best_neig, l, r, fobs) < neighbor_value(s, l, r, fobs):
-            print('Got better!', neighbor_value(s, l, r, fobs),
-                                 neighbor_value(best_neig, l, r, fobs))
+        #
+        best_neig_value = neighbor_value(best_neig, l, r, fobs)
+        s_value = neighbor_value(s, l, r, fobs)
+        if best_neig_value < s_value:
+            if file:
+                file.write('Got better! ' + str(s_value) + ' ' + str(best_neig_value) + '\n')
+            else:
+                print('Got better! ', s_value, best_neig_value)
             j = 0
             s = best_neig
         else:
             j += 1
 
-    print('Final:', neighbor_value(s, l, r, fobs))
+    if file:
+        file.write('Final: ' + str(s_value) + '\n')
+    else:
+        print('Final:', neighbor_value(s, l, r, fobs))
     return s
 
 
@@ -243,26 +256,38 @@ def check_solution(i=1):
 
 
 def signal_handler(signum, frame):
-    raise Exception("Timed out!")
+    raise Exception("Timed out")
 
 
 # Init pool
-pool = mp.Pool(mp.cpu_count() - 2)
+pool = mp.Pool(mp.cpu_count())
 
 
 def print_results(i):
     signal.signal(signal.SIGALRM, signal_handler)
-    signal.alarm(60)   # Sixty seconds
-    print(f'##### CASE {i + 1} ####')
+    signal.alarm(300)   # Sixty seconds
+    file = None
     try:
-        vnd(i)
+        try:
+            file = open(f'./Solutions/sol{i}.out', 'w')
+        except FileNotFoundError:
+            os.system('mkdir ./Solutions')
+            file = open(f'./Solutions/sol{i}.out', 'w')
+        vnd(i,file=file)
     except Exception as e:
-        print(e)
-    print(f'Finished case {i + 1}')
+        print(e + f' for case {i}')
+        file.close()
+    print(f'Finished case {i}!')
+    file.close()
 
 
-[pool.apply_async(print_results, args=(i+1)) for i in range(20)]
+try:
+    os.system('rm ./Solutions/*')
+except Exception:
+    pass
+[pool.map(print_results, [i + 1 for i in range(20)])]
 
 pool.close()
+print('Done!')
 
 #print(check_solution())
