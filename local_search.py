@@ -1,8 +1,7 @@
-import signal
 import pandas as pd
 import numpy as np
 import random as rd
-import multiprocessing as mp
+import signal
 import os
 
 
@@ -259,35 +258,19 @@ def signal_handler(signum, frame):
     raise Exception("Timed out")
 
 
-# Init pool
-pool = mp.Pool(mp.cpu_count())
-
-
 def print_results(i):
-    signal.signal(signal.SIGALRM, signal_handler)
-    signal.alarm(300)   # Sixty seconds
+    #signal.signal(signal.SIGALRM, signal_handler)
+    #signal.alarm(1000)   # Sixty seconds
     file = None
     try:
         try:
-            file = open(f'./Solutions/sol{i}.out', 'w')
+            file = open(f'./Solutions/sol{i}.log', 'w')
         except FileNotFoundError:
             os.system('mkdir ./Solutions')
-            file = open(f'./Solutions/sol{i}.out', 'w')
+            file = open(f'./Solutions/sol{i}.log', 'w')
         vnd(i,file=file)
     except Exception as e:
-        print(e + f' for case {i}')
+        print(str(e) + f'for case {i}')
         file.close()
     print(f'Finished case {i}!')
     file.close()
-
-
-try:
-    os.system('rm ./Solutions/*')
-except Exception:
-    pass
-[pool.map(print_results, [i + 1 for i in range(20)])]
-
-pool.close()
-print('Done!')
-
-#print(check_solution())
