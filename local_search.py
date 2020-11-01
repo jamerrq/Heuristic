@@ -87,7 +87,7 @@ def greedyRan(case, alpha):
 
 
         # If we got a wrong one
-        if sum([1 - (valObj[i] <= right[i] - fix2[i]) for i in range(m)]):
+        if sum([1 - (valObj[i] <= right[i] - fix[i]) for i in range(m)]):
             items[RCL[index][1]] = 0
             valObj = np.dot(left, items)
             break
@@ -168,9 +168,9 @@ def neighbor_value(neighbor, left, right, fobs):
     return noFill, -sumFob
 
 
-def vnd(i):
+def vnd(i,alpha = 0.5):
     #
-    s, l, r, fobs = greedyRan(i, .05)
+    s, l, r, fobs = greedyRan(i, alpha)
     #
     print('First', neighbor_value(s, l, r, fobs))
     #
@@ -185,8 +185,7 @@ def vnd(i):
         neighbors.sort(key=lambda x:neighbor_value(x, l, r, fobs))
         best_neig = neighbors[0]
         if neighbor_value(best_neig, l, r, fobs) < neighbor_value(s, l, r, fobs):
-            print('Got be(tt)er!', neighbor_value(s, l, r, fobs),
-                                   neighbor_value(best_neig, l, r, fobs))
+            print('Got be(tt)er!', neighbor_value(s, l, r, fobs), neighbor_value(best_neig, l, r, fobs))
             j = 0
             s = best_neig
         else:
@@ -202,10 +201,10 @@ def signal_handler(signum, frame):
 
 signal.signal(signal.SIGALRM, signal_handler)
 signal.alarm(300)   # Five minutes
-for i in range(1):
+for i in range(4,5):
     print(f'##### CASE {i + 1} ####')
     try:
-        vnd(i + 1)
+        vnd(i + 1, 0.5)
     except Exception as e:
         print(e)
 
