@@ -2,6 +2,7 @@ import signal
 import pandas as pd
 import numpy as np
 import random as rd
+import multiprocessing as mp
 
 
 def get_data(i):
@@ -119,9 +120,10 @@ def greedyRan(case, alpha):
 
 
 def neighbors1(s):
+    # Separate indexes from zeros and ones
     zeros = [i for i in range(len(s)) if 1 - s[i]]
     ones  = [i for i in range(len(s)) if s[i]]
-    #
+    # Create the neighborhood with the original solution
     neighbors = [s]
     #
     for i in range(len(zeros)):
@@ -130,9 +132,9 @@ def neighbors1(s):
             neighbor[zeros[i]] = 1
             neighbor[ones[j]]  = 0
             neighbors.append(neighbor)
-    #
-    #for neighbor in neighbors:
-    #    print(neighbor)
+
+    # for neighbor in neighbors:
+    #     print(neighbor)
     return neighbors
 
 
@@ -150,11 +152,34 @@ def neighbors2(s):
 
 
 def neighbors3(s):
-    neighbors = [s]
-    #
-    for i in range(len(s)):
-        for j in range(i + 1, len(s)):
-            pass
+    # Number of neighbors is the number of variables
+    nn = len(s)
+    # Neighbor start with the original solution
+    neighborhood = [s]
+    # Create a set to avoid repetitions
+    check = set()
+    # Add the original
+    check.add(''.join([str(x) for x in s]))
+    # Fill the neighborhood
+    while len(neighborhood) <= nn:
+        # Choose a random number of zeros and ones
+        ones = rd.randint(1, len(s))
+        zers = len(s) - ones
+        # Create a vector of ones and zeros
+        neighbor = [0] * zers + [1] * ones
+        # Shuffle the array
+        rd.shuffle(neighbor)
+        # Create the key to check if it is repeated
+        key = ''.join([str(x) for x in neighbor])
+        if not key in check:
+            neighborhood.append(neighbor)
+            check.add(key)
+
+    # Print that shit
+    #for neighbor in neighborhood:
+    #    print(neighbor)
+
+    return neighborhood
 
 
 def neighbor_value(neighbor, left, right, fobs):
@@ -168,7 +193,7 @@ def neighbor_value(neighbor, left, right, fobs):
     return noFill, -sumFob
 
 
-def vnd(i,alpha = 0.5):
+def vnd(i, alpha=0.5):
     #
     s, l, r, fobs = greedyRan(i, alpha)
     #
@@ -176,7 +201,7 @@ def vnd(i,alpha = 0.5):
     #
     j = 0
     #
-    neighborhoods = [neighbors1, neighbors2][::-1]#, neighbors3]
+    neighborhoods = [neighbors3, neighbors1, neighbors2]
     nn = len(neighborhoods)
     #
     best_neig = s
@@ -185,27 +210,59 @@ def vnd(i,alpha = 0.5):
         neighbors.sort(key=lambda x:neighbor_value(x, l, r, fobs))
         best_neig = neighbors[0]
         if neighbor_value(best_neig, l, r, fobs) < neighbor_value(s, l, r, fobs):
-            print('Got be(tt)er!', neighbor_value(s, l, r, fobs), neighbor_value(best_neig, l, r, fobs))
+            print('Got better!', neighbor_value(s, l, r, fobs),
+                                 neighbor_value(best_neig, l, r, fobs))
             j = 0
             s = best_neig
         else:
             j += 1
 
-    print(neighbor_value(s, l, r, fobs))
+    print('Final:', neighbor_value(s, l, r, fobs))
     return s
+
+
+def check_solution(i=1):
+    n, m, p, consts, fobs = get_data(i)
+    left = np.zeros((m, n))
+    right = np.zeros(m)
+    #
+    solution = []
+    file = open('hamilton_solution.in')
+    for line in file:
+        row = list(map(int, line.split()))
+        solution.extend(row)
+    file.close()
+    solution = np.array(solution)
+    #
+    for i in range(m):
+        left[i] = consts[i][:-1]
+        right[i] = consts[i][-1]
+
+    valObj = np.dot(left, solution)
+    return sum([1 - (valObj[i] <= right[i]) for i in range(m)])
 
 
 def signal_handler(signum, frame):
     raise Exception("Timed out!")
 
 
-signal.signal(signal.SIGALRM, signal_handler)
-signal.alarm(300)   # Five minutes
-for i in range(4,5):
+# Init pool
+pool = mp.Pool(mp.cpu_count() - 2)
+
+
+def print_results(i):
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(60)   # Sixty seconds
     print(f'##### CASE {i + 1} ####')
     try:
-        vnd(i + 1, 0.5)
+        vnd(i)
     except Exception as e:
         print(e)
+    print(f'Finished case {i + 1}')
 
-    print('######################')
+
+[pool.apply_async(print_results, args=(i+1)) for i in range(20)]
+
+pool.close()
+
+#print(check_solution())
