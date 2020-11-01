@@ -193,7 +193,7 @@ def neighbor_value(neighbor, left, right, fobs):
     return noFill, -sumFob
 
 
-def vnd(i, alpha=0.5, file=None):
+def vnd(i, alpha=0.1, file=None):
     #
     s, l, r, fobs = greedyRan(i, alpha)
     s_value = neighbor_value(s, l, r, fobs)
