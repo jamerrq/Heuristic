@@ -234,7 +234,7 @@ def vnd(i, alpha=0.1, file=None):
 
 
 def check_solution(i=1):
-    n, m, p, consts, fobs = get_data(i)
+    n, m, _, consts, _ = get_data(i)
     left = np.zeros((m, n))
     right = np.zeros(m)
     #
