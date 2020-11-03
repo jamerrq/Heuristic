@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import random as rd
+import math
 import signal
 import os
 
@@ -124,7 +125,7 @@ def neighbors1(s):
     zeros = [i for i in range(len(s)) if 1 - s[i]]
     ones  = [i for i in range(len(s)) if s[i]]
     # Create the neighborhood with the original solution
-    neighbors = [s]
+    neighbors = []
     #
     for i in range(len(zeros)):
         for j in range(len(ones)):
@@ -231,6 +232,40 @@ def vnd(i, alpha=0.1, file=None):
     else:
         print('Final:', neighbor_value(s, l, r, fobs))
     return s
+
+# Initial temp T0, final temp TF, r cooling factor, L length
+def simulated_annealing(i, T0, TF, rc, L):
+
+    s, l, r, fobs = greedyRan(i,0.5)
+    s_value = neighbor_value(s, l, r, fobs)
+    # while stop criteria 5minutes
+    t = T0
+    while t > TF:
+        m = 0
+        while m < L:
+            m += 1
+            neighbors = neighbors1(s)
+            neighbors.sort(key=lambda x:neighbor_value(x, l, r, fobs))
+            s_nei = neighbors[0]
+            s_nei_value = neighbor_value(s_nei, l, r, fobs)
+            d = (s_value[1] - s_nei_value[1])*-1
+
+            if d < 0:
+                print('Got better! ', s_value, s_nei_value)
+                s = s_nei
+            else:
+                try:
+                    prob = math.exp(-d/t)
+                except Exception:
+                    prob = 1
+                if rd.random() < prob:
+                    s = s_nei
+
+            s_value = neighbor_value(s,l,r,fobs)
+        t = t*rc
+    return s
+
+simulated_annealing(2, 20, 1, 0.5, 100)
 
 
 def check_solution(i=1):
