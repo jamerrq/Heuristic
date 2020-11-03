@@ -4,6 +4,7 @@ import random as rd
 import math
 import signal
 import os
+import time
 
 
 def get_data(i):
@@ -235,37 +236,43 @@ def vnd(i, alpha=0.1, file=None):
 
 # Initial temp T0, final temp TF, r cooling factor, L length
 def simulated_annealing(i, T0, TF, rc, L):
-
+    now = time.time()
     s, l, r, fobs = greedyRan(i,0.5)
     s_value = neighbor_value(s, l, r, fobs)
     # while stop criteria 5minutes
-    t = T0
-    while t > TF:
-        m = 0
-        while m < L:
-            m += 1
-            neighbors = neighbors1(s)
-            neighbors.sort(key=lambda x:neighbor_value(x, l, r, fobs))
-            s_nei = neighbors[0]
-            s_nei_value = neighbor_value(s_nei, l, r, fobs)
-            d = (s_value[1] - s_nei_value[1])*-1
 
-            if d < 0:
-                print('Got better! ', s_value, s_nei_value)
-                s = s_nei
-            else:
-                try:
-                    prob = math.exp(-d/t)
-                except Exception:
-                    prob = 1
-                if rd.random() < prob:
+    while time.process_time() < 100:
+        t = T0
+        while t > TF:
+            m = 0
+            while m < L:
+                m += 1
+                neighbors = neighbors1(s)
+                neighbors.sort(key=lambda x:neighbor_value(x, l, r, fobs))
+                s_nei = neighbors[0]
+                s_nei_value = neighbor_value(s_nei, l, r, fobs)
+                d = (s_value[1] - s_nei_value[1])*-1
+
+                if d < 0:
+                    print('Got better! ', s_value, s_nei_value)
                     s = s_nei
+                else:
+                    try:
+                        prob = math.exp(-d/t)
+                    except Exception:
+                        prob = 1
+                    if rd.random() < prob:
+                        s = s_nei
 
-            s_value = neighbor_value(s,l,r,fobs)
-        t = t*rc
+                s_value = neighbor_value(s,l,r,fobs)
+            t = t*rc
+
+        then = time.time()
+
+    print(then - now)
     return s
 
-simulated_annealing(2, 20, 1, 0.5, 100)
+simulated_annealing(1, 20, 1, 0.5, 80)
 
 
 def check_solution(i=1):
