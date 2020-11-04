@@ -3,8 +3,6 @@ import numpy as np
 import random as rd
 from openpyxl import Workbook
 import math
-import signal
-import os
 import time
 
 
@@ -224,7 +222,7 @@ def vnd(i, alpha=0.3):
 # Initial temp T0, final temp TF, rc cooling factor, L length
 def simulated_annealing(i, T0, TF, rc, L):
     now = time.time()
-    s, l, r, fobs = greedyRan(i,0.6)
+    s, l, r, fobs = greedyRan(i,0.5)
     s_value = neighbor_value(s, l, r, fobs)
     s_nei = None
     neighbors = []
@@ -271,7 +269,7 @@ def simulated_annealing(i, T0, TF, rc, L):
 
 
 ############ Write solutions VND ##############
-
+tinit = time.time()
 # Create an excel book
 wb = Workbook()
 
@@ -314,7 +312,7 @@ wb = Workbook()
 def write_solution_s_a(i):
     global wb
     values, n, constemp, m, fobs_values, p, rnc \
-        = simulated_annealing(i,20,1,0.5,10)
+        = simulated_annealing(i,20,1,0.5,100)
 
     wsi = wb.create_sheet('I' + str(i))
     wsi['A1'] = len(values)
@@ -343,3 +341,5 @@ for i in range(20):
 del wb['Sheet']
 wb.save('ResultadosSA.xlsx')
 wb.close()
+
+print(time.time()-tinit)
