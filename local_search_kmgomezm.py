@@ -8,8 +8,6 @@ import os
 import time
 
 
-#rd.seed(0)
-
 def get_data(i):
 
     # Read data from sheet i
@@ -68,13 +66,11 @@ def greedyRan(case, alpha):
     # Generate initial RCL
     RCL = cals_sorted[0 : int(len(cals) * alpha)]
 
-    # Fix negative constraints
+    # Allows infactible
     fix = np.zeros(m)
-    fix2 = np.zeros(m)
     for i in range(m):
         if right[i] < 0:
             fix[i] = sum(left[i][j] for j in range(n))
-            fix2[i] = right[i]
 
 
     valObj = np.dot(left, items)
@@ -87,10 +83,8 @@ def greedyRan(case, alpha):
         # Modify its value in the solution
         items[RCL[index][1]] = 1
 
-
         # Calculate constraints
         valObj = np.dot(left, items)
-
 
         # If we got a wrong one
         if sum([1 - (valObj[i] <= right[i] - fix[i]) for i in range(m)]):
@@ -102,13 +96,10 @@ def greedyRan(case, alpha):
         real_index = RCL[index][1]
         cals[real_index][2] = True
 
-
         # Update RCL
         nottaken = [cals[i] for i in range(len(cals)) if not cals[i][2]]
         cals_sorted = sorted(nottaken, reverse=True)
         RCL = cals_sorted[0:int(len(cals_sorted)*alpha)]
-
-    #print(sum([1 - (valObj[i] <= right[i]) for i in range(m)]))
 
     for j in range(len(cals)):
         if not cals[j][2]:
@@ -119,8 +110,6 @@ def greedyRan(case, alpha):
                 valObj = np.dot(left, items)
 
 
-    #print(valObj, right)
-    #print(case, sum([1 - (valObj[i] <= right[i]) for i in range(m)]), m)
     return items, left, right, fobs
 
 
@@ -138,8 +127,6 @@ def neighbors1(s):
             neighbor[ones[j]]  = 0
             neighbors.append(neighbor)
 
-    # for neighbor in neighbors:
-    #     print(neighbor)
     return neighbors
 
 
@@ -150,9 +137,7 @@ def neighbors2(s):
         neighbor = s.copy()
         neighbor[i] = 1 - neighbor[i]
         neighbors.append(neighbor)
-    #
-    #for neighbor in neighbors:
-    #    print(neighbor)
+
     return neighbors
 
 
@@ -180,12 +165,7 @@ def neighbors3(s):
             neighborhood.append(neighbor)
             check.add(key)
 
-    # Print that shit
-    #for neighbor in neighborhood:
-    #    print(neighbor)
-
     return neighborhood
-
 
 def neighbor_value(neighbor, left, right, fobs):
     m = len(left)
@@ -198,16 +178,12 @@ def neighbor_value(neighbor, left, right, fobs):
     return noFill, -sumFob
 
 
-def vnd(i, alpha=0.3, file=None):
+def vnd(i, alpha=0.3):
     now = time.time()
     #
     s, l, r, fobs = greedyRan(i, alpha)
     s_value = neighbor_value(s, l, r, fobs)
-    #
-    if file:
-        file.write('First: ' + str(s_value) + '\n')
-    else:
-        print('First:', neighbor_value(s, l, r, fobs))
+
     #
     j = 0
     #
@@ -228,11 +204,6 @@ def vnd(i, alpha=0.3, file=None):
         best_neig_value = neighbor_value(best_neig, l, r, fobs)
         s_value = neighbor_value(s, l, r, fobs)
         if best_neig_value < s_value:
-            if file:
-                file.write('Got better! ' + str(s_value) + ' ' \
-                    + str(best_neig_value) + '\n')
-            else:
-                print('Got better! ', s_value, best_neig_value)
             j = 0
             s = best_neig
             last_neighbors = neighbors
@@ -245,11 +216,6 @@ def vnd(i, alpha=0.3, file=None):
             a = False
 
     ss = [x for x in last_neighbors if neighbor_value(x,l,r,fobs) == last_value]
-
-    if file:
-        file.write('Final: ' + str(s_value) + '\n')
-    else:
-        print('Final:', neighbor_value(s, l, r, fobs))
 
     return ss, len(s), [np.dot(l,s) for s in ss], len(l), \
         [np.dot(fobs,s) for s in ss], len(fobs), last_value[0]
@@ -264,7 +230,7 @@ def simulated_annealing(i, T0, TF, rc, L):
     neighbors = []
     last_neighbors = []
 
-    # while stop criteria 5minutes
+    # while stop criteria 5 minutes
     a = True
     while a:
         t = T0
@@ -279,7 +245,6 @@ def simulated_annealing(i, T0, TF, rc, L):
                 d = (s_value[1] - s_nei_value[1])*-1
 
                 if s_value[0] - s_nei_value[0] > 0 or d<0:
-                    #print('Got better! ', s_value, s_nei_value)
                     s = s_nei
                     last_neighbors = neighbors
                 else:
@@ -294,7 +259,7 @@ def simulated_annealing(i, T0, TF, rc, L):
                 s_value = neighbor_value(s,l,r,fobs)
 
                 then = time.time()
-                if then-now > 40:
+                if then-now > 290:
                     a = False
 
             t = t*rc
@@ -305,48 +270,7 @@ def simulated_annealing(i, T0, TF, rc, L):
         [np.dot(fobs,s) for s in ss], len(fobs), s_value[0]
 
 
-def check_solution(i=1):
-    n, m, _, consts, _ = get_data(i)
-    left = np.zeros((m, n))
-    right = np.zeros(m)
-    #
-    solution = []
-    file = open('hamilton_solution.in')
-    for line in file:
-        row = list(map(int, line.split()))
-        solution.extend(row)
-    file.close()
-    solution = np.array(solution)
-    #
-    for i in range(m):
-        left[i] = consts[i][:-1]
-        right[i] = consts[i][-1]
-
-    valObj = np.dot(left, solution)
-    return sum([1 - (valObj[i] <= right[i]) for i in range(m)])
-
-
-def signal_handler(signum, frame):
-    raise Exception("Timed out")
-
-
-def print_results(i):
-    #signal.signal(signal.SIGALRM, signal_handler)
-    #signal.alarm(1000)   # Sixty seconds
-    file = None
-    try:
-        try:
-            file = open(f'./Solutions/sol{i}.log', 'w')
-        except FileNotFoundError:
-            os.system('mkdir ./Solutions')
-            file = open(f'./Solutions/sol{i}.log', 'w')
-        vnd(i,file=file)
-    except Exception as e:
-        print(str(e) + f'for case {i}')
-        file.close()
-    print(f'Finished case {i}!')
-    file.close()
-
+############ Write solutions VND ##############
 
 # Create an excel book
 wb = Workbook()
@@ -374,7 +298,7 @@ def write_solution_vnd(i):
             cell.value = fobs_values[i][col]
 
 
-for i in range(3):
+for i in range(20):
     write_solution_vnd(i + 1)
 
 
@@ -382,12 +306,16 @@ del wb['Sheet']
 wb.save('ResultadosVND.xlsx')
 wb.close()
 
+################ Write solutions Simulated Annealing ##############
+
 # Create an excel book
 wb = Workbook()
 
 def write_solution_s_a(i):
     global wb
-    values, n, constemp, m, fobs_values, p, rnc = simulated_annealing(i,20,1,0.5,10)
+    values, n, constemp, m, fobs_values, p, rnc \
+        = simulated_annealing(i,20,1,0.5,10)
+
     wsi = wb.create_sheet('I' + str(i))
     wsi['A1'] = len(values)
     wsi['C1'] = f"RNC = {rnc}"
@@ -408,7 +336,7 @@ def write_solution_s_a(i):
             cell.value = fobs_values[i][col]
 
 
-for i in range(3):
+for i in range(20):
     write_solution_s_a(i + 1)
 
 
